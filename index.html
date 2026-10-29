@@ -1,0 +1,125 @@
+import pygame
+import sys
+
+# === Cấu hình cơ bản ===
+pygame.init()
+CHIEU_RONG, CHIEU_CAO = 800, 500
+man_hinh = pygame.display.set_mode((CHIEU_RONG, CHIEU_CAO))
+pygame.display.set_caption("Phiêu Lưu Mario")
+dong_ho = pygame.time.Clock()
+FPS = 60
+
+# === Màu sắc ===
+TRANG = (255, 255, 255)
+XANH_DAT = (34, 139, 34)
+XANH_TROI = (135, 206, 235)
+DO = (255, 0, 0)
+VANG = (255, 215, 0)
+
+# === Lớp nhân vật Mario ===
+class Mario:
+    def __init__(self):
+        self.rong = 40
+        self.cao = 50
+        self.x = 50
+        self.y = CHIEU_CAO - self.cao - 50
+        self.toc_do_x = 0
+        self.toc_do_y = 0
+        self.toc_do_chay = 5
+        self.nang_luc_nhay = -14
+        self.trong_luc = 0.8
+        self.dang_dat = True
+
+    def cap_nhat(self, nen):
+        # Điều khiển trái/phải
+        phim = pygame.key.get_pressed()
+        self.toc_do_x = 0
+        if phim[pygame.K_LEFT]:
+            self.toc_do_x = -self.toc_do_chay
+        if phim[pygame.K_RIGHT]:
+            self.toc_do_x = self.toc_do_chay
+        if phim[pygame.K_SPACE] and self.dang_dat:
+            self.toc_do_y = self.nang_luc_nhay
+            self.dang_dat = False
+
+        # Áp dụng trọng lực
+        self.toc_do_y += self.trong_luc
+
+        # Cập nhật vị trí
+        self.x += self.toc_do_x
+        self.y += self.toc_do_y
+
+        # Giới hạn màn hình
+        if self.x < 0: self.x = 0
+        if self.x + self.rong > CHIEU_RONG:
+            self.x = CHIEU_RONG - self.rong
+
+        # Kiểm tra chạm đất
+        if self.y + self.cao >= nen:
+            self.y = nen - self.cao
+            self.toc_do_y = 0
+            self.dang_dat = True
+
+    def ve(self, man_hinh):
+        pygame.draw.rect(man_hinh, DO, (self.x, self.y, self.rong, self.cao))
+        pygame.draw.rect(man_hinh, VANG, (self.x+5, self.y+5, 30, 15))  # Mũ
+
+# === Lớp vật cản / mục tiêu ===
+class VatTu:
+    def __init__(self, x, y, rong, cao, mau):
+        self.x = x
+        self.y = y
+        self.rong = rong
+        self.cao = cao
+        self.mau = mau
+    def ve(self, man_hinh):
+        pygame.draw.rect(man_hinh, self.mau, (self.x, self.y, self.rong, self.cao))
+    def va_cham(self, mario):
+        return (mario.x < self.x+self.rong and mario.x+mario.rong > self.x and
+                mario.y < self.y+self.cao and mario.y+mario.cao > self.y)
+
+# === Khởi tạo ===
+mario = Mario()
+muc_dat = CHIEU_CAO - 50
+cac_vat_can = [
+    VatTu(200, muc_dat-60, 100, 60, XANH_DAT),
+    VatTu(400, muc_dat-90, 100, 90, XANH_DAT),
+    VatTu(600, muc_dat-120, 120, 120, VANG)  # Đích
+]
+dang_chay = True
+troi_choi = True
+
+# === Vòng lặp chính ===
+while dang_chay:
+    # Bắt sự kiện
+    for su_kien in pygame.event.get():
+        if su_kien.type == pygame.QUIT:
+            dang_chay = False
+
+    if troi_choi:
+        # Cập nhật trạng thái Mario
+        mario.cap_nhat(muc_dat)
+
+        # Kiểm tra va chạm với đích
+        if cac_vat_can[-1].va_cham(mario):
+            troi_choi = False
+            thong_bao = "BẠN ĐÃ THẮNG!"
+
+    # Vẽ màn hình
+    man_hinh.fill(XANH_TROI)
+    pygame.draw.rect(man_hinh, XANH_DAT, (0, muc_dat, CHIEU_RONG, 50))
+    for vt in cac_vat_can:
+        vt.ve(man_hinh)
+    mario.ve(man_hinh)
+
+    # Hiển thị thông báo thắng
+    if not troi_choi:
+        font = pygame.font.Font(None, 60)
+        chu = font.render(thong_bao, True, DO)
+        man_hinh.blit(chu, (CHIEU_RONG//2 - 120, CHIEU_CAO//2 - 30))
+
+    pygame.display.flip()
+    dong_ho.tick(FPS)
+
+pygame.quit()
+sys.exit()
